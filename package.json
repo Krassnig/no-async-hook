@@ -1,6 +1,6 @@
 {
   "name": "@krassnig/use-effect-async",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "An almost \"hook\" for handling async functions in React.",
   "main": "async-effect.js",
   "types": "async-effect.d.ts",
