@@ -13,31 +13,31 @@ import react, { useEffect } from "react";
 import { Async } from "use-effect-async";
 
 const CountComponent: React.FC = () => {
-	const [count, setCount] = useState<number>();
+    const [count, setCount] = useState<number>();
 
-	useEffect(() => Async(async signal => {
-		// backend call or any async operation
-		const response = await Promise.resolve(12345);
-		setCount(response);
-	}), []);
+    useEffect(() => Async(async signal => {
+        // backend call or any async operation
+        const response = await Promise.resolve(12345);
+        setCount(response);
+    }), []);
 
-	return count === undefined ? (
-		<p>Loading count...</p>
-	) : (
-		<p>Count: { count }</p>
-	);
+    return count === undefined ? (
+        <p>Loading count...</p>
+    ) : (
+        <p>Count: { count }</p>
+    );
 }
 ```
 
 ## useEffect Dependencies
 
 If `useEffect` and `Async` are used correctly, eslint will notify you of missing dependencies.
-To receive proper linting you should not pass the result of the `Async` function directly into `useEffect`.
+To receive proper linting you should NOT pass the result of the `Async` function directly into `useEffect`.
 
 ```tsx
 // DO NOT do this
 useEffect(Async(async signal) => {
-	// async code
+    // async code
 }, []);
 ```
 
@@ -49,31 +49,31 @@ To avoid this just inline the function like this:
 ```tsx
 // Do this instead
 useEffect(() => Async(async signal) => {
-	// async code
+    // async code
 }, []);
 ```
 
 Using the `Async` function this way alerts you about missing dependencies.
-For example, if you were you forget `id` as a dependency when doing a backend call
+For example, if you were to forget `id` as a dependency when doing a backend call
 
 ```tsx
 import react, { useEffect } from "react";
 import { Async } from "use-effect-async";
 
 const CountComponent: React.FC<{ id: number }> = ({ id }) => {
-	const [count, setCount] = useState<number>();
+    const [count, setCount] = useState<number>();
 
-	useEffect(() => Async(async signal => {
-		const response = await fetch(`/api/counters/${id}`, { signal });
-		const count = await response.json();
-		setCount(count);
-	}), []); // <--- missing `id`
+    useEffect(() => Async(async signal => {
+        const response = await fetch(`/api/counters/${id}`, { signal });
+        const count = await response.json();
+        setCount(count);
+    }), []); // <--- missing `id`
 
-	return count === undefined ? (
-		<p>Loading count...</p>
-	) : (
-		<p>Count: { count }</p>
-	);
+    return count === undefined ? (
+        <p>Loading count...</p>
+    ) : (
+        <p>Count: { count }</p>
+    );
 }
 ```
 
@@ -84,24 +84,24 @@ eslint gives the following output: `React Hook useEffect has a missing dependenc
 `Effect` is the inverse to `Async`.
 It allows you to convert a function written in a callback style into a function that uses async/await.
 It expects the same exact pattern that is used inside a `useEffect` hook, but accepts a signal instead of a dependency array.
-The cleanup function is triggered once the signal is aborted.
-If, like in the example below, the signal comes from the `Async` function the cleanup will be triggered exactly when React cleans up the surrounding `useEffect` hook.
+The cleanup function will be triggered once the signal is aborted.
+If, like in the example below, the signal comes from the `Async` function, the cleanup will be triggered exactly when React cleans up the surrounding `useEffect` hook.
 
 ```tsx
 import { Async, Effect } from "use-effect-async";
 
 const MyComponent: React.FC = () => {
-	useEffect(() => Async(async signal => {		
-		
-		await Effect(resolve => {
-			const timeoutId = setTimeout(() => resolve(), 1000);
-			return () => clearTimeout(timeoutId);
-		}, signal);
+    useEffect(() => Async(async signal => {		
+        
+        await Effect(resolve => {
+            const timeoutId = setTimeout(() => resolve(), 1000);
+            return () => clearTimeout(timeoutId);
+        }, signal);
 
-		const response = await fetch(...);
-	}, []);
+        const response = await fetch(...);
+    }, []);
 
-	return (...);
+    return (...);
 }
 ```
 
@@ -118,10 +118,10 @@ It is important to clean up the timeout should the `Effect` be aborted before th
 import { Effect } from "async-effect";
 
 export const delay = async (milliseconds: number, signal: AbortSignal): Promise<void> => {
-	return await Effect(resolve => {
-		const timeoutId = setTimeout(() => resolve(), milliseconds);
-		return () => clearTimeout(timeoutId);
-	}, signal);
+    return await Effect(resolve => {
+        const timeoutId = setTimeout(() => resolve(), milliseconds);
+        return () => clearTimeout(timeoutId);
+    }, signal);
 }
 ```
 
@@ -132,12 +132,12 @@ For example, the hook from the [Effect Section above](#Effect) can then be simpl
 import { Async } from "use-effect-async";
 
 const MyComponent: React.FC = () => {
-	useEffect(() => Async(async signal => {		
-		await delay(1000, signal);
-		const response = await fetch(...);
-	}, []);
+    useEffect(() => Async(async signal => {		
+        await delay(1000, signal);
+        const response = await fetch(...);
+    }, []);
 
-	return (...);
+    return (...);
 }
 ```
 
@@ -150,19 +150,19 @@ Simply resolve the `Effect` in the `Effect`s cleanup function.
 import { Async, Effect } from "use-effect-async";
 
 useEffect(() => Async(async signal => {
-	await delay(1000, signal); // do work
+    await delay(1000, signal); // do work
 
-	// resolve when useEffect cleans up.
-	await Effect(resolve => () => resolve(), signal); 
+    // resolve when useEffect cleans up.
+    await Effect(resolve => () => resolve(), signal); 
 
-	console.log('cleanup has been called');
+    console.log('cleanup has been called');
 }), []);
 ```
 
 ## Exception Handling
 
 Aync function in general, but especially in React inside a `useEffect` call, are supposed to be cancelable at "any" point in time.
-In order to achieve that, an [AbortSignal](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal) is passed between async functions which tells them when an [AbortController](https://developer.mozilla.org/en-US/docs/Web/API/AbortController) cancels the async operation.
+In order to achieve that, an [AbortSignal](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal) is passed between async functions which tells the async operation when an [AbortController](https://developer.mozilla.org/en-US/docs/Web/API/AbortController) cancels the async operation.
 In order to cancel the async operation deep inside the call stack an exception is thrown (or equivalently the promise is rejected).
 This then collapses the call stack and the promise is aborted.
 Since Javascripts `catch` catches everything, simply surrounding an async operation with a `try`/`catch` would prevent the cancellation.
@@ -170,18 +170,18 @@ In order to not break the cancellability of an async function when catching erro
 
 ```typescript
 const myAsyncFunction = async (signal: AbortSignal): Promise<any> => {
-	try {
-		return await anotherAsyncFunction(signal);
-	}
-	catch (error) {
-		if (signal.aborted) { // DO NOT catch cancellations!
-			throw error; // The call stack continues to collapse
-		}
-		else {
-			// handle error
-			console.error(error);
-		}
-	}
+    try {
+        return await anotherAsyncFunction(signal);
+    }
+    catch (error) {
+        if (signal.aborted) { // DO NOT catch cancellations!
+            throw error; // The call stack continues to collapse
+        }
+        else {
+            // handle error
+            console.error(error);
+        }
+    }
 }
 ```
 
@@ -191,20 +191,20 @@ If you are unsure which paradigm to use after reading this README feel free to e
 
 ```tsx
 useEffect(
-	() => Async(
-		async signal => await Effect(
-			resolve => Async(
-				async signal => await Effect(
-					resolve => Async(
-						async signal => await Effect(
-							resolve => Async(
-								async signal => { console.log('Hello World!'); }
-							), signal
-						)
-					), signal
-				)
-			), signal
-		)
-	)
+    () => Async(
+        async signal => await Effect(
+            resolve => Async(
+                async signal => await Effect(
+                    resolve => Async(
+                        async signal => await Effect(
+                            resolve => Async(
+                                async signal => { console.log('Hello World!'); }
+                            ), signal
+                        )
+                    ), signal
+                )
+            ), signal
+        )
+    )
 );
 ```
