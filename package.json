@@ -1,0 +1,26 @@
+{
+  "name": "@krassnig/use-effect-async",
+  "version": "0.1.0",
+  "description": "An almost \"hook\" for handling async functions in React.",
+  "main": "async-effect.js",
+  "types": "async-effect.d.ts",
+  "homepage": "https://github.com/Krassnig/async-effect",
+  "repository": "https://github.com/Krassnig/async-effect",
+  "scripts": {
+    "build": "./node_modules/.bin/tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "async",
+    "await",
+    "effect",
+    "react",
+    "hook",
+    "useEffect"
+  ],
+  "author": "Niklas Kraßnig",
+  "license": "ISC",
+  "devDependencies": {
+    "typescript": "^5.1.6"
+  }
+}
