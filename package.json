@@ -4,8 +4,8 @@
   "description": "An almost \"hook\" for handling async functions in React.",
   "main": "async-effect.js",
   "types": "async-effect.d.ts",
-  "homepage": "https://github.com/Krassnig/async-effect",
-  "repository": "https://github.com/Krassnig/async-effect",
+  "homepage": "https://github.com/Krassnig/use-effect-async",
+  "repository": "https://github.com/Krassnig/use-effect-async",
   "scripts": {
     "build": "./node_modules/.bin/tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
