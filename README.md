@@ -10,7 +10,7 @@ Simply add `() => Async(async signal => { /* your code */ })` to your `useEffect
 
 ```tsx
 import react, { useEffect } from "react";
-import { Async } from "use-effect-async";
+import { Async } from "@krassnig/use-effect-async";
 
 const CountComponent: React.FC = () => {
     const [count, setCount] = useState<number>();
@@ -58,7 +58,7 @@ For example, if you were to forget `id` as a dependency when doing a backend cal
 
 ```tsx
 import react, { useEffect } from "react";
-import { Async } from "use-effect-async";
+import { Async } from "@krassnig/use-effect-async";
 
 const CountComponent: React.FC<{ id: number }> = ({ id }) => {
     const [count, setCount] = useState<number>();
@@ -88,7 +88,7 @@ The cleanup function will be triggered once the signal is aborted.
 If, like in the example below, the signal comes from the `Async` function, the cleanup will be triggered exactly when React cleans up the surrounding `useEffect` hook.
 
 ```tsx
-import { Async, Effect } from "use-effect-async";
+import { Async, Effect } from "@krassnig/use-effect-async";
 
 const MyComponent: React.FC = () => {
     useEffect(() => Async(async signal => {		
@@ -129,7 +129,7 @@ Once implemented it is easier to use and read.
 For example, the hook from the [Effect Section above](#Effect) can then be simplified to:
 
 ```tsx
-import { Async } from "use-effect-async";
+import { Async } from "@krassnig/use-effect-async";
 
 const MyComponent: React.FC = () => {
     useEffect(() => Async(async signal => {		
@@ -147,7 +147,7 @@ const MyComponent: React.FC = () => {
 Simply resolve the `Effect` in the `Effect`s cleanup function.
 
 ```tsx
-import { Async, Effect } from "use-effect-async";
+import { Async, Effect } from "@krassnig/use-effect-async";
 
 useEffect(() => Async(async signal => {
     await delay(1000, signal); // do work
@@ -165,7 +165,7 @@ Aync function in general, but especially in React inside a `useEffect` call, are
 In order to achieve that, an [AbortSignal](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal) is passed between async functions which tells the async operation when an [AbortController](https://developer.mozilla.org/en-US/docs/Web/API/AbortController) cancels the async operation.
 In order to cancel the async operation deep inside the call stack an exception is thrown (or equivalently the promise is rejected).
 This then collapses the call stack and the promise is aborted.
-Since Javascripts `catch` catches everything, simply surrounding an async operation with a `try`/`catch` would prevent the cancellation.
+Since Javascripts `catch` catches everything, simply surrounding an async operation with a `try`/`catch` would prevent that cancellation.
 In order to not break the cancellability of an async function when catching errors use `signal.aborted` and rethrow the error.
 
 ```typescript

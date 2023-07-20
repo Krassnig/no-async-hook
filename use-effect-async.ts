@@ -22,19 +22,31 @@ export const Effect = <T>(
 	
 	return new Promise<T>((resolve, reject) => {
 		try {
-			const cleanUp = effect(resolve);
+			const freeResources = () => {
+				signal.removeEventListener('abort', onAbort);
+				cleanUp?.();
+			}
 			
 			const onAbort = () => {
 				try {
-					cleanUp?.();
-					reject(signal.reason);
+					freeResources();
 				}
 				finally {
-					signal.removeEventListener('abort', onAbort);
+					reject(signal.reason);
 				}
 			}
 
 			signal.addEventListener('abort', onAbort);
+
+			const cleanUp = effect(value => {
+				try {
+					freeResources();
+					resolve(value);
+				}
+				catch (e) {
+					reject(e);
+				}
+			});
 		}
 		catch (e) {
 			reject(e);
