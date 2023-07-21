@@ -1,6 +1,6 @@
 {
   "name": "@krassnig/use-effect-async",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Seamlessly switch between async/await and callback/effect style functions. ",
   "main": "use-effect-async.js",
   "types": "use-effect-async.d.ts",
