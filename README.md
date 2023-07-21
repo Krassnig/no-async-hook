@@ -84,8 +84,9 @@ eslint gives the following output: `React Hook useEffect has a missing dependenc
 `Effect` is the inverse to `Async`.
 It allows you to convert a function written in a callback style into a function that uses async/await.
 It expects the same exact pattern that is used inside a `useEffect` hook, but accepts a signal instead of a dependency array.
-The cleanup function will be triggered once the signal is aborted.
-If, like in the example below, the signal comes from the `Async` function, the cleanup will be triggered exactly when React cleans up the surrounding `useEffect` hook.
+The cleanup function will be triggered once the signal is aborted or the `Effect` resolves.
+If, like in the example below, the signal comes from the `Async` function,
+the cleanup will be triggered when React cleans up the surrounding `useEffect` hook or after one seconds has passed.
 
 ```tsx
 import { Async, Effect } from "@krassnig/use-effect-async";
@@ -109,9 +110,8 @@ This example waits for one second and then calls `fetch` afterwards. The `resolv
 
 ## Delay
 
-You can encapsulate `Effect` calls inside async function to make them easier to read.
-For example, this `delay` function.
-It is implemented by calling `setTimeout` and resolving it once the timeout is triggered.
+You can encapsulate `Effect` calls inside async functions to make them easier to read.
+For example, this `delay` function is implemented by calling `setTimeout` and resolving it once the timeout is triggered.
 It is important to clean up the timeout should the `Effect` be aborted before the timeout resolves.
 
 ```typescript
@@ -163,7 +163,7 @@ useEffect(() => Async(async signal => {
 
 Aync function in general, but especially in React inside a `useEffect` call, are supposed to be cancelable at "any" point in time.
 In order to achieve that, an [AbortSignal](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal) is passed between async functions which tells the async operation when an [AbortController](https://developer.mozilla.org/en-US/docs/Web/API/AbortController) cancels the async operation.
-In order to cancel the async operation deep inside the call stack an exception is thrown (or equivalently the promise is rejected).
+In order to cancel the async operation deep inside the call stack, an exception is thrown (or equivalently the promise is rejected).
 This then collapses the call stack and the promise is aborted.
 Since Javascripts `catch` catches everything, simply surrounding an async operation with a `try`/`catch` would prevent that cancellation.
 In order to not break the cancellability of an async function when catching errors use `signal.aborted` and rethrow the error.
