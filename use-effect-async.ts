@@ -1,7 +1,7 @@
 type Destructor = () => void;
 
 export const Async = (promise: (signal: AbortSignal) => Promise<void>): Destructor => {
-	const abortReason = Symbol('promise-aborted');
+	const abortReason = new Error('promise-aborted');
 	const controller = new AbortController();
 	const signal = controller.signal;
 
@@ -22,30 +22,28 @@ export const Effect = <T>(
 	
 	return new Promise<T>((resolve, reject) => {
 		try {
-			const freeResources = () => {
+			const cleanUpAndThen = (andThen: () => void) => {
 				signal.removeEventListener('abort', onAbort);
-				cleanUp?.();
-			}
-			
-			const onAbort = () => {
+				
 				try {
-					freeResources();
+					cleanUp?.();
+				}
+				catch (e) {
+					console.error("An error occurred inside an Effect Destructor call. Consider adding an error boundary to your Effect Destructor function.", e);
 				}
 				finally {
-					reject(signal.reason);
+					andThen();
 				}
 			}
 
+			const onAbort = () => {
+				cleanUpAndThen(() => reject(signal.reason));
+			}
+			
 			signal.addEventListener('abort', onAbort);
 
 			const cleanUp = effect(value => {
-				try {
-					freeResources();
-					resolve(value);
-				}
-				catch (e) {
-					reject(e);
-				}
+				cleanUpAndThen(() => resolve(value));
 			});
 		}
 		catch (e) {

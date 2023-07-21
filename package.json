@@ -1,7 +1,7 @@
 {
   "name": "@krassnig/use-effect-async",
-  "version": "0.1.3",
-  "description": "An almost \"hook\" for handling async functions in React.",
+  "version": "0.1.4",
+  "description": "Seamlessly switch between async/await and callback/effect style functions. ",
   "main": "use-effect-async.js",
   "types": "use-effect-async.d.ts",
   "homepage": "https://github.com/Krassnig/use-effect-async",
