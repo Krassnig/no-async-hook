@@ -1,11 +1,11 @@
 {
-  "name": "@krassnig/use-effect-async",
-  "version": "0.1.5",
-  "description": "Seamlessly switch between async/await and callback/effect style functions. ",
-  "main": "use-effect-async.js",
-  "types": "use-effect-async.d.ts",
-  "homepage": "https://github.com/Krassnig/use-effect-async",
-  "repository": "https://github.com/Krassnig/use-effect-async",
+  "name": "no-async-hook",
+  "version": "0.2.0",
+  "description": "Seamlessly switch between async/await and callback/effect style functions.",
+  "main": "no-async-hook.js",
+  "types": "no-async-hook.d.ts",
+  "homepage": "https://github.com/Krassnig/no-async-hook",
+  "repository": "https://github.com/Krassnig/no-async-hook",
   "scripts": {
     "build": "./node_modules/.bin/tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
