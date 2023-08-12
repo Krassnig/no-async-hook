@@ -1,6 +1,6 @@
 {
   "name": "no-async-hook",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Seamlessly switch between async/await and callback/effect style functions.",
   "main": "no-async-hook.js",
   "types": "no-async-hook.d.ts",
