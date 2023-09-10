@@ -4,18 +4,18 @@ This library brings the `Async` and `Effect` functions to your codebase which al
 Using these functions also lets eslint statically verify the correct usage of the dependencies inside a `useEffect` hook.
 
 In depth article on why
-[You Might Not Need A useEffectAsync Hook](https://krassnig.dev/blog/you-might-not-need-a-use-async-hook).
+[You Might Not Need A useEffectAsync Hook](https://krassnig.dev/blog/you-might-not-need-a-use-effect-async-hook).
 
 ## How To Install
 
 Using NPM:
 ```
-npm install no-use-async
+npm install no-async-hook
 ```
 
 Using Yarn:
 ```
-yarn add no-use-async
+yarn add no-async-hook
 ```
 
 ## Async
