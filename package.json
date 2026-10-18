@@ -1,11 +1,17 @@
 {
   "name": "no-async-hook",
-  "version": "0.3",
-  "description": "Seamlessly switch between async/await and callback/effect style functions.",
+  "version": "0.3.0",
+  "type": "module",
   "main": "no-async-hook.js",
+  "exports": "./no-async-hook.js",
+  "files": ["no-async-hook.js"],
+  "description": "Seamlessly switch between async/await and callback/effect style functions.",
   "homepage": "https://github.com/Krassnig/no-async-hook",
   "repository": "https://github.com/Krassnig/no-async-hook",
-  "scripts": { },
+  "scripts": {
+    "test": "vitest",
+    "test:run": "vitest run"
+  },
   "keywords": [
     "async",
     "await",
@@ -15,5 +21,8 @@
     "useEffect"
   ],
   "author": "Niklas Kraßnig",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "vitest": "^5.0.5"
+  }
 }

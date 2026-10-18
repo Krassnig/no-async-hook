@@ -2,186 +2,161 @@
  * Runs the given async function immediately and returns a cleanup function that aborts it.
  * Call the cleanup function to abort the async function.
  * @param {(signal: AbortSignal) => PromiseLike<void>} asyncFunction receives an `AbortSignal`. Pass it to every async call inside so the function can be aborted correctly.
- * @returns {() => void} A cleanup function that aborts the `AbortSignal`.
- * @throws {TypeError} If `asyncFunction` does not return a promise.
+ * @returns {(reason?: any) => void} A cleanup function that aborts the `AbortSignal`, an optional reason may be given.
+ * @throws {TypeError} If `asyncFunction` is not a function or does not return a promise.
  */
 export function asCallback(asyncFunction) {
-	const abortReason = Symbol('aborted by asCallback cleanup / do not catch');
+	if (typeof asyncFunction !== 'function')
+		throw new TypeError(`The parameter 'asyncFunction' must be a function, but received '${describeType(asyncFunction)}' instead.`);
+
 	const controller = new AbortController();
 	const signal = controller.signal;
 
-	const promise = asyncFunction(signal);
+	const promiseLike = asyncFunction(signal);
 
-	if (typeof promise?.then !== 'function') {
-		throw new TypeError(`asCallback: asyncFunction must return a promise, but returned ${promise === null ? 'null' : typeof promise}.`);
+	if (typeof promiseLike?.then !== 'function') {
+		throw new TypeError(`The parameter 'asyncFunction' must return a 'PromiseLike', but returned '${describeType(promiseLike)}' instead.`);
 	}
 
-	Promise.resolve(promise).catch(error => {
+	Promise.resolve(promiseLike).catch(error => {
 		if (!signal.aborted) {
-			throw error;
+			queueMicrotask(() => { throw error; });
 		}
 	});
 
-	return () => controller.abort(abortReason);
+	return reason => controller.abort(reason);
 }
 
 /**
- * Converts a callback into a promise.
+ * Runs the given executor function immediately and returns a promise that can be aborted using an AbortSignal.
+ * Unlike a normal Promise executor, this executor function has to return a cleanup function.
  * @template T
- * @param {(resolve: (value: T | PromiseLike<T>) => void, reject: (reason?: any) => void) => ((() => void) | void)} effect implement an effect and use the two arguments to effect resolve and reject to complete it.
- * @param {AbortSignal} signal a signal which can abort the returned promise.
+ * @param {(resolve: (value: T | PromiseLike<T>) => void, reject: (reason?: any) => void) => ((reason?: any) => void)} executor a Promise executor that returns a cleanup function.
+ * @param {AbortSignal} signal a signal which can be used to abort the returned promise.
  * @returns {Promise<T>} a promise.
+ * @throws {TypeError} If the executor or signal are not the correct type.
  */
-export function asPromise(effect, signal) {
-	if (!(signal instanceof AbortSignal))
-		throw new TypeError();
-	if (typeof effect !== 'function')
-		throw new TypeError();
-	if (signal.aborted)
-		return Promise.reject(signal.reason);
-	
-	return new Promise((resolve, reject) => {
-		let isSettled = false;
-		let destructor = undefined;
-
-		const runDestructor = () => {
-			try {
-				destructor?.();
-			}
-			catch (error) {
-				console.error(
-					"An error occurred inside an Effect Destructor call. " +
-					"Consider adding an error boundary to your Effect Destructor function.",
-					error
-				);
-			}
-		}
-
-		const freeResources = () => {
-			if (isSettled) return;
-			else isSettled = true;
-
-			signal.removeEventListener('abort', onAbort);
-			runDestructor();
-		}
-
-		const onAbort = () => {
-			freeResources();
-			reject(signal.reason);
-		}
-
-		signal.addEventListener('abort', onAbort);
-
-		try {
-			destructor = effect(
-				value => {
-					freeResources();
-					resolve(value);
-				},
-				reason => {
-					freeResources();
-					reject(reason);
-				}
-			);
-		}
-		catch (error) {
-			freeResources();
-			reject(error);
-			return;
-		}
-
-		if (destructor !== undefined && typeof destructor !== 'function') {
-			const error = new TypeError(`asPromise: effect must return a cleanup function or nothing, but returned ${destructor === null ? 'null' : typeof destructor}.`);
-			destructor = undefined;
-
-			if (isSettled) {
-				console.error(error);
-			}
-			else {
-				freeResources();
-				reject(error);
-			}
-			return;
-		}
-
-		// effect resolved or rejected synchronously, before its destructor was assigned
-		if (isSettled) runDestructor();
-	});
-}
-
-export function asPromise3(effect, signal) {
-	if (!(signal instanceof AbortSignal))
-		throw new TypeError();
-	if (typeof effect !== 'function')
-		throw new TypeError();
+export function asPromise(executor, signal) {
+	if (typeof executor !== 'function')
+		throw new TypeError(`The parameter 'executor' must be a function, but received '${describeType(executor)}' instead.`);
+	if (!isAbortSignalLike(signal))
+		throw new TypeError(`The parameter 'signal' must be an AbortSignal, but received '${describeType(signal)}' instead.`);
 	if (signal.aborted)
 		return Promise.reject(signal.reason);
 	
 	return new Promise((resolve, reject) => {
 		let isPromiseSettled = false;
-		let destructor = undefined;
+		/** @type {undefined | ((reason?: any) => void)} */
+		let cleanupFunction = undefined;
+		let settledReason = undefined;
 
-		const freeResources = () => {
+		const freeResources = reason => {
+			if (!isPromiseSettled) {
+				isPromiseSettled = true;
+				settledReason = reason;
+			}
+
 			signal.removeEventListener('abort', onAbort);
 
-			if (isPromiseSettled)
-				return;
-
-			isPromiseSettled = true;
-
 			try {
-				destructor?.();
-				destructor = undefined;
+				const swapCleanupFunction = cleanupFunction;
+				cleanupFunction = undefined;
+				swapCleanupFunction?.(settledReason);
 			}
-			catch (error) {
-				console.error(
-					"An error occurred inside an Effect Destructor call. " +
-					"Consider adding an error boundary to your Effect Destructor function.",
-					error
-				);
+			catch (innerError) {
+				queueMicrotask(() => {
+					throw new Error(
+						`An error was thrown inside an 'asPromise' cleanup function. Consider adding a try/catch.`,
+						{ cause: innerError }
+					);
+				});
 			}
 		}
 
 		const onAbort = () => {
-			freeResources();
+			freeResources(signal.reason);
 			reject(signal.reason);
 		}
 
 		signal.addEventListener('abort', onAbort);
 
 		try {
-			const returnedDestructor = effect(
+			let isResolving = false;
+			cleanupFunction = executor(
 				value => {
-					freeResources();
-					resolve(value);
+					if (isPromiseSettled || isResolving)
+						return;
+
+					if (typeof value?.then !== 'function') {
+						freeResources();
+						resolve(value);
+						return;
+					}
+					
+					isResolving = true;
+					Promise.resolve(value).then(
+						innerValue => {
+							freeResources();
+							resolve(innerValue);
+						},
+						innerError => {
+							freeResources(innerError);
+							reject(innerError);
+						}
+					);
 				},
 				reason => {
-					freeResources();
+					if (isPromiseSettled || isResolving)
+						return;
+
+					freeResources(reason);
 					reject(reason);
 				}
 			);
-			if (returnedDestructor !== undefined && typeof returnedDestructor !== 'function') {
+
+			if (typeof cleanupFunction !== 'function') {
+				const error = new TypeError(`The executor must return a cleanup function, but returned '${describeType(cleanupFunction)}' instead.`);
+				cleanupFunction = undefined;
 				if (isPromiseSettled) {
-					console.error(`asPromise: effect must return a cleanup function or nothing, but returned ${returnedDestructor === null ? 'null' : typeof returnedDestructor}.`);
+					queueMicrotask(() => { throw error; });
 					return;
 				}
 				else {
-					throw new TypeError(`asPromise: effect must return a cleanup function or nothing, but returned ${returnedDestructor === null ? 'null' : typeof returnedDestructor}.`);
+					throw error;
 				}
 			}
-			else {
-				destructor = returnedDestructor;
-				// effect resolved or rejected synchronously, before its destructor was assigned
-				if (isPromiseSettled) {
-					isPromiseSettled = false;
-					freeResources();
-				}
+
+			if (isPromiseSettled) {
+				freeResources();
 			}
 		}
 		catch (error) {
-			freeResources();
+			freeResources(error);
 			reject(error);
-			return;
 		}
 	});
+}
+
+/**
+ * Describes the type of a value for error messages: the constructor name for objects, otherwise typeof.
+ * @param {unknown} value any value
+ * @returns typeof or prototype name of that value
+ */
+function describeType(value) {
+	if (value === null) return 'null';
+	if (typeof value !== 'object') return typeof value;
+	const className = Object.getPrototypeOf(value)?.constructor?.name;
+	return className === undefined || className === '' ? 'object' : className;
+}
+
+/**
+ * Checks the shape instead of `instanceof AbortSignal`, so signals from other realms (iframes, jsdom) and polyfills are accepted.
+ * `reason` is not checked, as older implementations do not have it.
+ * @param {unknown} signal maybe a signal
+ * @returns {signal is AbortSignal} signal like
+ */
+function isAbortSignalLike(signal) {
+	return typeof signal?.aborted === 'boolean'
+		&& typeof signal.addEventListener === 'function'
+		&& typeof signal.removeEventListener === 'function';
 }
