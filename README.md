@@ -1,6 +1,6 @@
 # You Might Not Need A useEffectAsync Hook
 
-This library brings the `Async` and `Effect` functions to your codebase which allow you to seamlessly switch between the async/await and callback/effect style functions.
+This library brings the `asCallback` and `asPromise` functions to your codebase which allow you to seamlessly switch between the async/await and callback/effect style functions.
 Using these functions also lets eslint statically verify the correct usage of the dependencies inside a `useEffect` hook.
 
 In depth article on why
@@ -18,10 +18,10 @@ Using Yarn:
 yarn add no-async-hook
 ```
 
-## Async
+## asCallback
 
-The `Async` function allows you to write a normal async function and converts that async function into a function that `useEffect` can control.
-Simply add `() => Async(async signal => { /* your code */ })` to your `useEffect` and use async/await functions.
+The `asCallback` function allows you to write a normal async function and converts that async function into a function that `useEffect` can control.
+Simply add `() => asCallback(async signal => { /* your code */ })` to your `useEffect` and use async/await functions.
 
 ```tsx
 import { Async } from "no-async-hook";
@@ -30,7 +30,7 @@ import { useEffect, useState } from "react";
 const PersonComponent: React.FC = ({ personId }) => {
     const [name, setName] = useState<string | undefined>(undefined);
 
-    useEffect(() => Async(async signal => {
+    useEffect(() => asCallback(async signal => {
         await delay(1000, signal);
         const person = await findPersonById(personId, signal);
         const fullName = person.firstName + ' ' + person.lastName;
@@ -47,20 +47,20 @@ const PersonComponent: React.FC = ({ personId }) => {
 
 ## useEffect Dependencies
 
-Since `Async` is just another function called inside `useEffect`,
+Since `asCallback` is just another function called inside `useEffect`,
 eslint verifies missing dependencies like it would for any other function inside `useEffect`.
 For example, if the `personId` were to be forgotten inside the `useEffect` dependency array,
 eslint would warn you with the message:
 `React Hook useEffect has a missing dependency: 'personId'. Either include it or remove the dependency array  react-hooks/exhaustive-deps`.
 
 ```tsx
-import { Async } from "no-async-hook";
+import { asCallback } from "no-async-hook";
 import { useEffect, useState } from "react";
 
 const PersonComponent: React.FC = ({ personId }) => {
     const [name, setName] = useState<string | undefined>(undefined);
 
-    useEffect(() => Async(async signal => {
+    useEffect(() => asCallback(async signal => {
         await delay(1000, signal);
         const person = await findPersonById(personId, signal);
         const fullName = person.firstName + ' ' + person.lastName;
