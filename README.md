@@ -73,7 +73,7 @@ function Person({ personId }: { personId: number }) {
 ## asPromise
 
 `asPromise` is the inverse of `asEffect`: it turns a callback style API into a promise.
-Its executor works like the one of `new Promise`, but returns a cleanup function, just like a `useEffect` callback.
+Its executor works like the one of `new Promise`, but must return a cleanup function, just like a `useEffect` callback.
 
 ```typescript
 useEffect(() => asEffect(async signal => {

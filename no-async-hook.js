@@ -30,6 +30,7 @@ export function asEffect(asyncFunction) {
 	const promiseLike = asyncFunction(signal);
 
 	if (!isPromiseLike(promiseLike)) {
+		controller.abort();
 		throw new TypeError(`The parameter 'asyncFunction' must return a 'PromiseLike', but returned '${describeType(promiseLike)}' instead.`);
 	}
 

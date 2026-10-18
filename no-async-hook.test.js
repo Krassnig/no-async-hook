@@ -134,6 +134,13 @@ describe('asEffect', () => {
 		expect(() => asEffect(() => returnValue)).toThrow(TypeError);
 	});
 
+	it('aborts the signal if asyncFunction does not return a promise', () => {
+		let signal;
+
+		expect(() => asEffect(s => { signal = s; })).toThrow(TypeError);
+		expect(signal.aborted).toBe(true);
+	});
+
 	it('accepts a non-native thenable', () => {
 		expect(() => asEffect(() => ({ then() { } }))).not.toThrow();
 	});
