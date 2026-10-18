@@ -11,7 +11,10 @@
   "files": ["no-async-hook.js", "no-async-hook.d.ts"],
   "description": "Seamlessly switch between async/await and callback/effect style functions.",
   "homepage": "https://github.com/Krassnig/no-async-hook",
-  "repository": "https://github.com/Krassnig/no-async-hook",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Krassnig/no-async-hook.git"
+  },
   "scripts": {
     "test": "vitest",
     "test:run": "vitest run"
