@@ -15,6 +15,11 @@ npm install no-async-hook
 
 or any other package manager, or just copy the code.
 
+## Agent instructions
+
+Agent instructions are written in the .js and .d.ts file.
+Installing this library will make them automatically implement async/await and callbacks correctly.
+
 ## asCallback
 
 The `asCallback` function allows you to write a normal async function and converts that async function into a function that `useEffect` can control.
