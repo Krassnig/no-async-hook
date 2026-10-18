@@ -14,7 +14,7 @@ export function asCallback(asyncFunction) {
 
 	const promiseLike = asyncFunction(signal);
 
-	if (typeof promiseLike?.then !== 'function') {
+	if (!isPromiseLike(promiseLike)) {
 		throw new TypeError(`The parameter 'asyncFunction' must return a 'PromiseLike', but returned '${describeType(promiseLike)}' instead.`);
 	}
 
@@ -66,7 +66,8 @@ export function asPromise(executor, signal) {
 			try {
 				const swapCleanupFunction = cleanupFunction;
 				cleanupFunction = undefined;
-				swapCleanupFunction?.(settledReason);
+				if (swapCleanupFunction !== undefined)
+					swapCleanupFunction(settledReason);
 			}
 			catch (innerError) {
 				queueMicrotask(() => {
@@ -91,7 +92,7 @@ export function asPromise(executor, signal) {
 					if (isPromiseSettled || isResolving)
 						return;
 
-					if (typeof value?.then !== 'function') {
+					if (!isPromiseLike(value)) {
 						freeResources();
 						resolve(value);
 						return;
@@ -159,8 +160,18 @@ export function asPromise(executor, signal) {
 function describeType(value) {
 	if (value === null) return 'null';
 	if (typeof value !== 'object') return typeof value;
-	const className = Object.getPrototypeOf(value)?.constructor?.name;
-	return className === undefined || className === '' ? 'object' : className;
+	const prototype = Object.getPrototypeOf(value);
+	const className = prototype && prototype.constructor && prototype.constructor.name;
+	return typeof className === 'string' && className !== '' ? className : 'object';
+}
+
+/**
+ * Checks for a `then` method, the same way `Promise.resolve` recognizes a thenable.
+ * @param {unknown} value any value
+ * @returns {value is PromiseLike<unknown>} promise like
+ */
+function isPromiseLike(value) {
+	return value !== null && value !== undefined && typeof value.then === 'function';
 }
 
 /**
@@ -170,7 +181,9 @@ function describeType(value) {
  * @returns {signal is AbortSignal} signal like
  */
 function isAbortSignalLike(signal) {
-	return typeof signal?.aborted === 'boolean'
+	return signal !== null
+		&& signal !== undefined
+		&& typeof signal.aborted === 'boolean'
 		&& typeof signal.addEventListener === 'function'
 		&& typeof signal.removeEventListener === 'function';
 }

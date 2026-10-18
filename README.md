@@ -13,10 +13,7 @@ Using NPM:
 npm install no-async-hook
 ```
 
-Using Yarn:
-```
-yarn add no-async-hook
-```
+or any other package manager, or just copy the code.
 
 ## asCallback
 
@@ -24,7 +21,7 @@ The `asCallback` function allows you to write a normal async function and conver
 Simply add `() => asCallback(async signal => { /* your code */ })` to your `useEffect` and use async/await functions.
 
 ```tsx
-import { Async } from "no-async-hook";
+import { asCallback } from "no-async-hook";
 import { useEffect, useState } from "react";
 
 const PersonComponent: React.FC = ({ personId }) => {
@@ -75,14 +72,14 @@ const PersonComponent: React.FC = ({ personId }) => {
 }
 ```
 
-## Effect
+## asPromise
 
-The inverse function of `Async` is `Effect` and is used to convert a callback style function into a promise.
-Inside `Effect` you can write code just like inside a `useEffect` lambda.
+The inverse function of `asCallback` is `asPromise` and is used to convert a callback style function into a promise.
+Inside `asPromise` you can write code just like inside a `useEffect` lambda.
 
 ```typescript
-useEffect(() => Async(async signal => {
-    await Effect<void>(resolve => {
+useEffect(() => asCallback(async signal => {
+    await asPromise<void>(resolve => {
         const timeoutId = setTimeout(() => resolve(), 1000);
         return () => clearTimeout(timeoutId);
     }, signal);
@@ -90,19 +87,19 @@ useEffect(() => Async(async signal => {
 }), [...]);
 ```
 
-The main difference between `useEffect` and `Effect` is that instead of passing a dependency array to `Effect` it accepts an `AbortSignal` and provides a `resolve` function to fulfill the promise.
-With `Effect` any callback style function can be converted into a promise easily.
+The main difference between `useEffect` and `asPromise` is that instead of passing a dependency array to `asPromise` it accepts an `AbortSignal` and provides a `resolve` function to fulfill the promise.
+With `asPromise` any callback style function can be converted into a promise easily.
 Furthermore, these promises can be wrapped inside async functions to simplify async `useEffect` even more.
 
 ```typescript
 const delay = (milliseconds: number, signal: AbortSignal): Promise<void> => {
-    return Effect<void>(resolve => {
+    return asPromise<void>(resolve => {
         const timeoutId = setTimeout(() => resolve(), milliseconds);
         return () => clearTimeout(timeoutId);
     }, signal);
 }
 
-useEffect(() => Async(async signal => {
+useEffect(() => asCallback(async signal => {
     await delay(1000, signal);
     const response = await endpoint.findById(..., signal);
 }), [...]);
