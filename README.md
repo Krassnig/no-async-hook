@@ -1,86 +1,79 @@
 # You Might Not Need A useEffectAsync Hook
 
-This library brings the `asEffect` and `asPromise` functions to your codebase which allow you to seamlessly switch between the async/await and callback/effect style functions.
-Using these functions also lets eslint statically verify the correct usage of the dependencies inside a `useEffect` hook.
+`asEffect` turns an async function into a `useEffect` callback, `asPromise` turns a callback API into a promise.
+Both can be aborted through an `AbortSignal`, and eslint keeps checking your `useEffect` dependencies.
 
-In depth article on why
-[You Might Not Need A useEffectAsync Hook](https://krassnig.dev/blog/you-might-not-need-a-use-effect-async-hook).
+You can read the article on why here: [You Might Not Need A useEffectAsync Hook](https://krassnig.dev/blog/you-might-not-need-a-use-effect-async-hook).
 
 ## How To Install
 
-Using NPM:
 ```
 npm install no-async-hook
 ```
 
-or any other package manager, or just copy the code.
+Any other package manager works too, or just copy the code manually.
 
 ## Agent Instructions
 
-Agent instructions are written in the .js and .d.ts file.
-Installing this library will make them automatically implement async/await and callbacks correctly.
+The doc comments in `no-async-hook.js` and `no-async-hook.d.ts` show the correct patterns as examples, so coding agents reading them pick up the right usage.
 
 ## asEffect
 
-The `asEffect` function allows you to write a normal async function and converts that async function into a function that `useEffect` can control.
+The `asEffect` function allows you to write a normal async function and converts that async function into a function that can be passed to `useEffect`.
 Simply add `() => asEffect(async signal => { /* your code */ })` to your `useEffect` and use async/await functions.
 
 ```tsx
 import { asEffect } from "no-async-hook";
 import { useEffect, useState } from "react";
 
-const PersonComponent: React.FC = ({ personId }) => {
+function Person({ personId }: { personId: number }) {
     const [name, setName] = useState<string | undefined>(undefined);
 
     useEffect(() => asEffect(async signal => {
-        await delay(1000, signal);
-        const person = await findPersonById(personId, signal);
-        const fullName = person.firstName + ' ' + person.lastName;
-        setName(fullName);
+        const response = await fetch(`/api/persons/${personId}`, { signal });
+        const person = await response.json();
+        setName(`${person.firstName} ${person.lastName}`);
     }), [personId]);
 
     return name === undefined ? (
         <p>Loading person...</p>
     ) : (
-        <p>The person is named: { name }</p>
+        <p>The person is named: {name}</p>
     );
 }
 ```
 
 ## useEffect Dependencies
 
-Since `asEffect` is just another function called inside `useEffect`,
-eslint verifies missing dependencies like it would for any other function inside `useEffect`.
-For example, if the `personId` were to be forgotten inside the `useEffect` dependency array,
-eslint would warn you with the message:
-`React Hook useEffect has a missing dependency: 'personId'. Either include it or remove the dependency array  react-hooks/exhaustive-deps`.
+Since `asEffect` is just a function called inside `useEffect`, eslint checks its dependencies like any other code in `useEffect`.
+Forgetting `personId` in the example above produces the usual warning:
+`React Hook useEffect has a missing dependency: 'personId'. Either include it or remove the dependency array. react-hooks/exhaustive-deps`
 
 ```tsx
 import { asEffect } from "no-async-hook";
 import { useEffect, useState } from "react";
 
-const PersonComponent: React.FC = ({ personId }) => {
+function Person({ personId }: { personId: number }) {
     const [name, setName] = useState<string | undefined>(undefined);
 
     useEffect(() => asEffect(async signal => {
-        await delay(1000, signal);
-        const person = await findPersonById(personId, signal);
-        const fullName = person.firstName + ' ' + person.lastName;
-        setName(fullName);
+        const response = await fetch(`/api/persons/${personId}`, { signal });
+        const person = await response.json();
+        setName(`${person.firstName} ${person.lastName}`);
     }), []); // <--- missing `personId`
 
     return name === undefined ? (
         <p>Loading person...</p>
     ) : (
-        <p>The person is named: { name }</p>
+        <p>The person is named: {name}</p>
     );
 }
 ```
 
 ## asPromise
 
-The inverse function of `asEffect` is `asPromise` and is used to convert a callback style function into a promise.
-Inside `asPromise` you can write code just like inside a `useEffect` lambda.
+`asPromise` is the inverse of `asEffect`: it turns a callback style API into a promise.
+Its executor works like the one of `new Promise`, but returns a cleanup function, just like a `useEffect` callback.
 
 ```typescript
 useEffect(() => asEffect(async signal => {
@@ -88,16 +81,16 @@ useEffect(() => asEffect(async signal => {
         const timeoutId = setTimeout(() => resolve(), 1000);
         return () => clearTimeout(timeoutId);
     }, signal);
-    const response = await endpoint.findById(..., signal);
-}), [...]);
+    const response = await fetch(`/api/persons/${personId}`, { signal });
+}), [personId]);
 ```
 
-The main difference between `useEffect` and `asPromise` is that instead of passing a dependency array to `asPromise` it accepts an `AbortSignal` and provides a `resolve` function to fulfill the promise.
-With `asPromise` any callback style function can be converted into a promise easily.
-Furthermore, these promises can be wrapped inside async functions to simplify async `useEffect` even more.
+Instead of a dependency array, `asPromise` takes an `AbortSignal`: aborting it rejects the promise with `signal.reason`.
+The cleanup function runs exactly once, whether the promise resolves, rejects or is aborted.
+Ideally, each callback API should be wrapped in its own function and then combined through async/await.
 
 ```typescript
-const delay = (milliseconds: number, signal: AbortSignal): Promise<void> => {
+function delay(milliseconds: number, signal: AbortSignal): Promise<void> {
     return asPromise<void>(resolve => {
         const timeoutId = setTimeout(() => resolve(), milliseconds);
         return () => clearTimeout(timeoutId);
@@ -106,36 +99,31 @@ const delay = (milliseconds: number, signal: AbortSignal): Promise<void> => {
 
 useEffect(() => asEffect(async signal => {
     await delay(1000, signal);
-    const response = await endpoint.findById(..., signal);
-}), [...]);
+    const response = await fetch(`/api/persons/${personId}`, { signal });
+}), [personId]);
 ```
 
 ## Exception Handling
 
-An important aspect of asynchronous programming is the capability to cancel async functions at any given moment.
-Without it, an async function is forced to run to completion and cannot be stopped.
-Async function achieve this by throwing the `signal.reason` from inside the promise.
+Cancellation lets an async function stop at any point instead of running to completion.
+When its signal is aborted, the pending call throws `signal.reason`.
 
-For this reason cancellation errors thrown inside async function should not be caught in general.
-Instead, they should be rethrown until they reach the orignal caller of the async function.
+Therefore, do not catch cancellation errors: rethrow them until they reach the original caller.
 
-However, checking for a specific error is difficult if you neither have controll over the error thrown by the callee nor the error provided by the caller.
-To work around that limitation the signal can be checked to see if it has already been aborted.
-Through this you can infer that the error is *almost* centrainly a cancellation error without having to check for a specific value.
+Checking for a specific error is unreliable, since you control neither the error thrown by the callee nor the reason given by the caller.
+Check `signal.aborted` instead: if it is set, the error is *almost* certainly a cancellation.
 
 ```typescript
-const myAsyncFunction = async (signal: AbortSignal): Promise<any> => {
+async function myAsyncFunction(signal: AbortSignal): Promise<unknown> {
     try {
         return await anotherAsyncFunction(signal);
     }
     catch (error) {
         if (signal.aborted) { // DO NOT catch cancellations!
-            throw error; // The call stack continues to collapse
+            throw error; // the call stack continues to unwind
         }
-        else {
-            // handle error in some way
-            console.error(error);
-        }
+        // handle the error in some way
+        console.error(error);
     }
 }
 ```
