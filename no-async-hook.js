@@ -3,7 +3,7 @@
  * Call the cleanup function to abort the async function.
  * @example
  * // Use it instead of an async effect or a custom useEffectAsync hook.
- * useEffect(() => asCallback(async signal => {
+ * useEffect(() => asEffect(async signal => {
  *     const response = await fetch(url, { signal }); // pass the signal to every async call
  *     setData(await response.json());
  * }), [url]);
@@ -20,7 +20,7 @@
  * @returns {(reason?: any) => void} A cleanup function that aborts the `AbortSignal`, an optional reason may be given.
  * @throws {TypeError} If `asyncFunction` is not a function or does not return a promise.
  */
-export function asCallback(asyncFunction) {
+export function asEffect(asyncFunction) {
 	if (typeof asyncFunction !== 'function')
 		throw new TypeError(`The parameter 'asyncFunction' must be a function, but received '${describeType(asyncFunction)}' instead.`);
 

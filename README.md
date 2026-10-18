@@ -1,6 +1,6 @@
 # You Might Not Need A useEffectAsync Hook
 
-This library brings the `asCallback` and `asPromise` functions to your codebase which allow you to seamlessly switch between the async/await and callback/effect style functions.
+This library brings the `asEffect` and `asPromise` functions to your codebase which allow you to seamlessly switch between the async/await and callback/effect style functions.
 Using these functions also lets eslint statically verify the correct usage of the dependencies inside a `useEffect` hook.
 
 In depth article on why
@@ -15,24 +15,24 @@ npm install no-async-hook
 
 or any other package manager, or just copy the code.
 
-## Agent instructions
+## Agent Instructions
 
 Agent instructions are written in the .js and .d.ts file.
 Installing this library will make them automatically implement async/await and callbacks correctly.
 
-## asCallback
+## asEffect
 
-The `asCallback` function allows you to write a normal async function and converts that async function into a function that `useEffect` can control.
-Simply add `() => asCallback(async signal => { /* your code */ })` to your `useEffect` and use async/await functions.
+The `asEffect` function allows you to write a normal async function and converts that async function into a function that `useEffect` can control.
+Simply add `() => asEffect(async signal => { /* your code */ })` to your `useEffect` and use async/await functions.
 
 ```tsx
-import { asCallback } from "no-async-hook";
+import { asEffect } from "no-async-hook";
 import { useEffect, useState } from "react";
 
 const PersonComponent: React.FC = ({ personId }) => {
     const [name, setName] = useState<string | undefined>(undefined);
 
-    useEffect(() => asCallback(async signal => {
+    useEffect(() => asEffect(async signal => {
         await delay(1000, signal);
         const person = await findPersonById(personId, signal);
         const fullName = person.firstName + ' ' + person.lastName;
@@ -49,20 +49,20 @@ const PersonComponent: React.FC = ({ personId }) => {
 
 ## useEffect Dependencies
 
-Since `asCallback` is just another function called inside `useEffect`,
+Since `asEffect` is just another function called inside `useEffect`,
 eslint verifies missing dependencies like it would for any other function inside `useEffect`.
 For example, if the `personId` were to be forgotten inside the `useEffect` dependency array,
 eslint would warn you with the message:
 `React Hook useEffect has a missing dependency: 'personId'. Either include it or remove the dependency array  react-hooks/exhaustive-deps`.
 
 ```tsx
-import { asCallback } from "no-async-hook";
+import { asEffect } from "no-async-hook";
 import { useEffect, useState } from "react";
 
 const PersonComponent: React.FC = ({ personId }) => {
     const [name, setName] = useState<string | undefined>(undefined);
 
-    useEffect(() => asCallback(async signal => {
+    useEffect(() => asEffect(async signal => {
         await delay(1000, signal);
         const person = await findPersonById(personId, signal);
         const fullName = person.firstName + ' ' + person.lastName;
@@ -79,11 +79,11 @@ const PersonComponent: React.FC = ({ personId }) => {
 
 ## asPromise
 
-The inverse function of `asCallback` is `asPromise` and is used to convert a callback style function into a promise.
+The inverse function of `asEffect` is `asPromise` and is used to convert a callback style function into a promise.
 Inside `asPromise` you can write code just like inside a `useEffect` lambda.
 
 ```typescript
-useEffect(() => asCallback(async signal => {
+useEffect(() => asEffect(async signal => {
     await asPromise<void>(resolve => {
         const timeoutId = setTimeout(() => resolve(), 1000);
         return () => clearTimeout(timeoutId);
@@ -104,7 +104,7 @@ const delay = (milliseconds: number, signal: AbortSignal): Promise<void> => {
     }, signal);
 }
 
-useEffect(() => asCallback(async signal => {
+useEffect(() => asEffect(async signal => {
     await delay(1000, signal);
     const response = await endpoint.findById(..., signal);
 }), [...]);

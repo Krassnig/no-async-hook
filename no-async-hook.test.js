@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { asCallback, asPromise } from './no-async-hook.js';
+import { asEffect, asPromise } from './no-async-hook.js';
 
 afterEach(() => {
 	vi.restoreAllMocks();
@@ -81,11 +81,11 @@ function start(during = () => { }) {
 	return test;
 }
 
-describe('asCallback', () => {
+describe('asEffect', () => {
 	it('runs the async function immediately with an AbortSignal', () => {
 		const asyncFunction = vi.fn(async () => { });
 
-		asCallback(asyncFunction);
+		asEffect(asyncFunction);
 
 		expect(asyncFunction).toHaveBeenCalledExactlyOnceWith(expect.any(AbortSignal));
 	});
@@ -95,7 +95,7 @@ describe('asCallback', () => {
 		['the given reason', 'stop', reason => reason === 'stop'],
 	])('the cleanup aborts the signal with %s', (_, reason, isExpectedReason) => {
 		let signal;
-		const cleanup = asCallback(async s => { signal = s; });
+		const cleanup = asEffect(async s => { signal = s; });
 
 		cleanup(reason);
 
@@ -107,7 +107,7 @@ describe('asCallback', () => {
 		const reported = captureReportedErrors();
 		const error = new Error('boom');
 
-		asCallback(async () => { throw error; });
+		asEffect(async () => { throw error; });
 		await flush();
 
 		expect(reported).toEqual([error]);
@@ -116,7 +116,7 @@ describe('asCallback', () => {
 	it('does not report errors thrown after the signal was aborted', async () => {
 		const reported = captureReportedErrors();
 
-		const cleanup = asCallback(async signal => {
+		const cleanup = asEffect(async signal => {
 			await null;
 			signal.throwIfAborted();
 		});
@@ -127,15 +127,15 @@ describe('asCallback', () => {
 	});
 
 	it.each([undefined, null, {}])('throws a TypeError if asyncFunction is %o', asyncFunction => {
-		expect(() => asCallback(asyncFunction)).toThrow(TypeError);
+		expect(() => asEffect(asyncFunction)).toThrow(TypeError);
 	});
 
 	it.each([undefined, null, 42])('throws a TypeError if asyncFunction returns %o', returnValue => {
-		expect(() => asCallback(() => returnValue)).toThrow(TypeError);
+		expect(() => asEffect(() => returnValue)).toThrow(TypeError);
 	});
 
 	it('accepts a non-native thenable', () => {
-		expect(() => asCallback(() => ({ then() { } }))).not.toThrow();
+		expect(() => asEffect(() => ({ then() { } }))).not.toThrow();
 	});
 });
 
