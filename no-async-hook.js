@@ -44,8 +44,13 @@ export function asPromise(executor, signal) {
 	if (signal.aborted)
 		return Promise.reject(signal.reason);
 	
-	return new Promise((resolve, reject) => {
+	/** @type {Promise<T> | undefined} */
+	let promise = undefined;
+
+	promise = new Promise((resolve, reject) => {
 		let isPromiseSettled = false;
+		// `resolve` was called with a promise-like value, the outcome is decided by that value from now on
+		let isResolving = false;
 		/** @type {undefined | ((reason?: any) => void)} */
 		let cleanupFunction = undefined;
 		let settledReason = undefined;
@@ -81,7 +86,6 @@ export function asPromise(executor, signal) {
 		signal.addEventListener('abort', onAbort);
 
 		try {
-			let isResolving = false;
 			cleanupFunction = executor(
 				value => {
 					if (isPromiseSettled || isResolving)
@@ -92,7 +96,14 @@ export function asPromise(executor, signal) {
 						resolve(value);
 						return;
 					}
-					
+
+					if (value === promise) {
+						const error = new TypeError(`An 'asPromise' promise cannot be resolved with itself.`);
+						freeResources(error);
+						reject(error);
+						return;
+					}
+
 					isResolving = true;
 					Promise.resolve(value).then(
 						innerValue => {
@@ -117,24 +128,27 @@ export function asPromise(executor, signal) {
 			if (typeof cleanupFunction !== 'function') {
 				const error = new TypeError(`The executor must return a cleanup function, but returned '${describeType(cleanupFunction)}' instead.`);
 				cleanupFunction = undefined;
-				if (isPromiseSettled) {
-					queueMicrotask(() => { throw error; });
-					return;
-				}
-				else {
-					throw error;
-				}
+				throw error;
 			}
 
+			// executor resolved or rejected synchronously, before its cleanup function was assigned
 			if (isPromiseSettled) {
 				freeResources();
 			}
 		}
 		catch (error) {
-			freeResources(error);
-			reject(error);
+			// the outcome is already decided, so the error can only be reported
+			if (isPromiseSettled || isResolving) {
+				queueMicrotask(() => { throw error; });
+			}
+			else {
+				freeResources(error);
+				reject(error);
+			}
 		}
 	});
+
+	return promise;
 }
 
 /**

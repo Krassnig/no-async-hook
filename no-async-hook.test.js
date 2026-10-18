@@ -300,27 +300,34 @@ describe('asPromise', () => {
 		});
 	});
 
-	// These fail today. Remove `.fails` once they are fixed.
-	describe('known bugs', () => {
-		it.fails('rejects with a TypeError when resolved with itself, like a native promise', async () => {
+	describe('after the outcome is decided', () => {
+		it('rejects with a TypeError when resolved with itself, like a native promise', async () => {
 			const t = start();
 			t.resolve(t.promise);
 
 			const outcome = await outcomeOf(t.promise);
 
 			expect(outcome.error).toBeInstanceOf(TypeError);
+			expect(t.cleanup).toHaveBeenCalledExactlyOnceWith(outcome.error);
 		});
 
-		it.fails('ignores a throw after resolving with a promise, like after resolving with a value', async () => {
+		it.each([
+			['a value', 1],
+			['a promise', Promise.resolve(1)],
+		])('reports a throw after resolving with %s', async (_, value) => {
+			const reported = captureReportedErrors();
+			const error = new Error('boom');
+
 			const t = start(t => {
-				t.resolve(Promise.resolve(1));
-				throw new Error('boom');
+				t.resolve(value);
+				throw error;
 			});
 
 			expect(await outcomeOf(t.promise)).toEqual({ value: 1 });
+			expect(reported).toEqual([error]);
 		});
 
-		it.fails('reports an invalid cleanup function after resolving with a promise, like after resolving with a value', async () => {
+		it('reports an invalid cleanup function after resolving with a promise, like after resolving with a value', async () => {
 			const reported = captureReportedErrors();
 
 			const promise = asPromise(resolve => {
@@ -330,6 +337,19 @@ describe('asPromise', () => {
 
 			expect(await outcomeOf(promise)).toEqual({ value: 1 });
 			expect(reported).toEqual([expect.any(TypeError)]);
+		});
+
+		it('can still be aborted after the executor threw while a resolved promise is pending', async () => {
+			captureReportedErrors();
+
+			const t = start(t => {
+				t.resolve(new Promise(() => { }));
+				throw new Error('boom');
+			});
+			t.controller.abort('stop');
+
+			expect(await outcomeOf(t.promise)).toEqual({ error: 'stop' });
+			expect(t.activeListeners()).toBe(0);
 		});
 	});
 });
